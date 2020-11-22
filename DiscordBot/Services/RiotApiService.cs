@@ -15,14 +15,14 @@ namespace DiscordBot.Services
 
         public RiotApiService()
         {
-             riotApi = RiotApi.NewInstance(Environment.GetEnvironmentVariable("RIOTAPI"));
+            riotApi = RiotApi.NewInstance(Environment.GetEnvironmentVariable("RIOTAPI"));
         }
 
-        public async Task<string> GetRankedHistory(string summonerName)
+        public async Task<string> GetRankedHistory(string summonerName,string reigon, int numGames)
         {
             StringBuilder stringBuilder = new StringBuilder();
 
-            var summonerData = await riotApi.SummonerV4.GetBySummonerNameAsync(Region.OCE, summonerName);
+            var summonerData = await riotApi.SummonerV4.GetBySummonerNameAsync(Region.Get(reigon), summonerName);
 
             if(summonerData == null)
             {
@@ -30,13 +30,11 @@ namespace DiscordBot.Services
                 return stringBuilder.ToString(); 
             }
 
-            stringBuilder.AppendLine($"Match history for {summonerData.Name}:");
-
             var matchlist = await riotApi.MatchV4.GetMatchlistAsync(
-                Region.OCE, summonerData.AccountId, queue: new[] { 420 }, endIndex: 10);
+                Region.Get(reigon), summonerData.AccountId, queue: new[] { 420 }, endIndex: numGames);
 
             var matchDataTasks = matchlist.Matches.Select(
-                matchMetadata => riotApi.MatchV4.GetMatchAsync(Region.OCE, matchMetadata.GameId)).ToArray();
+                matchMetadata => riotApi.MatchV4.GetMatchAsync(Region.Get(reigon), matchMetadata.GameId)).ToArray();
 
             var matchDatas = await Task.WhenAll(matchDataTasks);
 
@@ -58,16 +56,27 @@ namespace DiscordBot.Services
                 var kda = (kills + assits) / (float)deaths;
 
                 string result = win ? "Won" : "Lost";
-                string firstLine = "Match : " + index + 1 + " Result : " + result + " Champion Played : " + champ.Name();
-                string secondLine = "Kills : " + kills + " Deaths : " + deaths + " Assists : " + assits; 
+                string line = result + " " + kills + "/" + deaths + "/" + assits + " as " + champ.Name();
 
-                stringBuilder.AppendLine(firstLine);
-                stringBuilder.AppendLine(secondLine); 
-
+                stringBuilder.AppendLine(line);
+                stringBuilder.AppendLine("");
                 index += 1; 
             }
 
             return stringBuilder.ToString(); 
+        }
+
+        public Boolean ValidReigon(string reigon)
+        {
+            try
+            {
+                Region.Get(reigon);
+                return true;
+            }
+            catch(Exception)
+            {
+                return false; 
+            }
         }
     }
 }

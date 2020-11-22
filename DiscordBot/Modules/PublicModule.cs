@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks; 
 using Discord;
 using Discord.Commands;
@@ -12,66 +13,53 @@ namespace DiscordBot.Modules
         public PictureService PictureService { get; set;}
 
         public RiotApiService RiotApiService { get; set;}
-        
-
-        [Command("ping")]
-        [Alias("pong", "hello")]
-        public Task PingAsync()
-            => ReplyAsync("pong");
+ 
 
         [Command("GetRankedHistory")]
         public async Task GetRankedInfoAsync(params string[] objects)
-        {
-            if (objects.Length != 2)
+        { 
+            if (ValidRankedInfo(objects))
             {
-                await ReplyAsync("Too many arguments");
+                var result = await RiotApiService.GetRankedHistory(objects[0], objects[1], Int32.Parse(objects[2]));
+                var embed = new EmbedBuilder
+                {
+                    Title = "Ranked History for " + objects[0],
+                    Color = Color.Green,
+                    Description = result
+                };
+                embed.WithCurrentTimestamp();
+                await ReplyAsync(embed : embed.Build());
+
             }
             else
             {
-                var result = await RiotApiService.GetRankedHistory(objects[0]);
-                await ReplyAsync(result);
+                string objectsString = "";
+
+                objects.ToList().ForEach(i => objectsString += i.ToString() + " ");
+
+
+                var embed = new EmbedBuilder
+                {
+                    Title = "Issue with Command : " + objectsString,
+                    Description = "Arguments should be the following:\n1: Summoner Name\n" +
+                    "2: Reigon\n" +
+                    "3: Number of Ranked Games (10 max)",
+                    Color = Color.Red,
+                };
+                embed.WithCurrentTimestamp();
+                await ReplyAsync(embed: embed.Build());
             }
         }
 
-        [Command("cat")]
-        public async Task CatAsync()
+        private Boolean ValidRankedInfo(string[] objects)
         {
-            var stream = await PictureService.GetPictureAsync();
-            stream.Seek(0, SeekOrigin.Begin);
-            await Context.Channel.SendFileAsync(stream, "cat.png");
+            int numberOfRankedGames;
+            if (objects.Length != 3) return false;
+            if (!int.TryParse(objects[2], out numberOfRankedGames)) return false;
+            if (numberOfRankedGames > 10) return false;
+            if (!RiotApiService.ValidReigon(objects[1])) return false; 
+
+            return true; 
         }
-
-        [Command("userinfo")]
-        public async Task UserInfoAsync(IUser user = null)
-        {
-            user = user ?? Context.User;
-
-            await ReplyAsync(user.ToString());
-        }
-
-        [Command("ban")]
-        [RequireContext(ContextType.Guild)]
-        [RequireUserPermission(GuildPermission.BanMembers)]
-        [RequireBotPermission(GuildPermission.BanMembers)]
-        public async Task BanUserAsync(IGuildUser user, [Remainder] string reason = null)
-        {
-            await user.Guild.AddBanAsync(user, reason: reason);
-            await ReplyAsync("okay");
-        }
-
-        [Command("echo")]
-        public Task EchoAsync([Remainder] string text)
-            => ReplyAsync('\u200b' + text);
-
-        [Command("list")]
-        public Task ListAsync(params string[] objects)
-            => ReplyAsync("You listed : "  + string.Join(";", objects));
-
-        [Command("guild_only")]
-        [RequireContext(ContextType.Guild, ErrorMessage = "Sorry this command must be ran from within a server, not a DM!")]
-        public Task GuildOnlyCommand()
-            => ReplyAsync("Nothing to see here"); 
-   
-
     }
 }
