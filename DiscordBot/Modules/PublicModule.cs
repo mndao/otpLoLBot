@@ -1,34 +1,43 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks; 
+using System.Text;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using DiscordBot.Services; 
+using DiscordBot.Services;
 
 namespace DiscordBot.Modules
 {
     public class PublicModule : ModuleBase<SocketCommandContext>
     {
-        public PictureService PictureService { get; set;}
+        public PictureService PictureService { get; set; }
 
-        public RiotApiService RiotApiService { get; set;}
- 
+        public RiotApiService RiotApiService { get; set; }
+
 
         [Command("GetRankedHistory")]
         public async Task GetRankedInfoAsync(params string[] objects)
-        { 
+        {
             if (ValidRankedInfo(objects))
             {
-                var result = await RiotApiService.GetRankedHistory(objects[0], objects[1], Int32.Parse(objects[2]));
+                StringBuilder stringBuilder = new StringBuilder();
+
+                for(int i = 0; i<= objects.Length-3; i++)
+                {
+                    stringBuilder.Append(objects[i]);
+                }
+
+                var result = await RiotApiService.GetRankedHistory(stringBuilder.ToString(), objects[objects.Length-2], Int32.Parse(objects[objects.Length-1]));
                 var embed = new EmbedBuilder
                 {
                     Title = "Ranked History for " + objects[0],
                     Color = Color.Green,
-                    Description = result
+                    Description = result["Data"],
+                    ThumbnailUrl = "http://ddragon.leagueoflegends.com/cdn/10.23.1/img/profileicon/" + result["IconID"] + ".png"
                 };
                 embed.WithCurrentTimestamp();
-                await ReplyAsync(embed : embed.Build());
+                await ReplyAsync(embed: embed.Build());
 
             }
             else
@@ -53,13 +62,13 @@ namespace DiscordBot.Modules
 
         private Boolean ValidRankedInfo(string[] objects)
         {
+            int arrayLength = objects.Length; 
             int numberOfRankedGames;
-            if (objects.Length != 3) return false;
-            if (!int.TryParse(objects[2], out numberOfRankedGames)) return false;
+            if (!int.TryParse(objects[arrayLength-1], out numberOfRankedGames)) return false;
             if (numberOfRankedGames > 10) return false;
-            if (!RiotApiService.ValidReigon(objects[1])) return false; 
+            if (!RiotApiService.ValidReigon(objects[arrayLength-2])) return false;
 
-            return true; 
+            return true;
         }
     }
 }

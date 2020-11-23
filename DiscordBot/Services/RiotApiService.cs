@@ -18,8 +18,9 @@ namespace DiscordBot.Services
             riotApi = RiotApi.NewInstance(Environment.GetEnvironmentVariable("RIOTAPI"));
         }
 
-        public async Task<string> GetRankedHistory(string summonerName,string reigon, int numGames)
+        public async Task<Dictionary<string,string>> GetRankedHistory(string summonerName,string reigon, int numGames)
         {
+            Dictionary<String, String> dictionary = new Dictionary<string, string>(); 
             StringBuilder stringBuilder = new StringBuilder();
 
             var summonerData = await riotApi.SummonerV4.GetBySummonerNameAsync(Region.Get(reigon), summonerName);
@@ -27,8 +28,11 @@ namespace DiscordBot.Services
             if(summonerData == null)
             {
                 stringBuilder.AppendLine($"Summoner '{summonerName}' not found.");
-                return stringBuilder.ToString(); 
+                dictionary.Add("Data",stringBuilder.ToString());
+                return dictionary;
             }
+
+            dictionary.Add("IconID", summonerData.ProfileIconId.ToString()); 
 
             var matchlist = await riotApi.MatchV4.GetMatchlistAsync(
                 Region.Get(reigon), summonerData.AccountId, queue: new[] { 420 }, endIndex: numGames);
@@ -63,7 +67,9 @@ namespace DiscordBot.Services
                 index += 1; 
             }
 
-            return stringBuilder.ToString(); 
+            dictionary.Add("Data", stringBuilder.ToString());
+
+            return dictionary; 
         }
 
         public Boolean ValidReigon(string reigon)
