@@ -23,7 +23,6 @@ namespace DiscordBot.Services
             commands.CommandExecuted += CommandExceutedAsync;
 
             discord.MessageReceived += MessageReceivedAsync; 
-
         }
 
         public async Task InitializeAsync()
@@ -40,8 +39,6 @@ namespace DiscordBot.Services
 
             if (!message.HasMentionPrefix(discord.CurrentUser, ref argPos)) return;
 
-            //if (!message.HasCharPrefix('!', ref argPos)) return; 
-
             var context = new SocketCommandContext(discord, message);
 
             await commands.ExecuteAsync(context, argPos, services);
@@ -53,7 +50,15 @@ namespace DiscordBot.Services
 
             if (result.IsSuccess) return;
 
-            await context.Channel.SendMessageAsync($"error: {result}");
+            var embed = new EmbedBuilder
+            {
+                Title = "Command Failed",
+                Description = result.ToString(),
+                Color = Color.Red
+            };
+            embed.WithCurrentTimestamp();
+
+            await context.Channel.SendMessageAsync(embed: embed.Build());
         }
     }
 }

@@ -13,7 +13,7 @@ namespace DiscordBot
     class Program
     {
         public static void Main(string[] args)
-        
+
             => new Program().MainAsync().GetAwaiter().GetResult();
        
         public async Task MainAsync()
@@ -47,8 +47,8 @@ namespace DiscordBot
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<HttpClient>()
-                .AddSingleton<PictureService>()
                 .AddSingleton<RiotApiService>()
+                .AddSingleton<DataDragonService>()
                 .BuildServiceProvider(); 
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DiscordBot.Exceptions;
 using MingweiSamuel.Camille;
 using MingweiSamuel.Camille.Enums;
 using MingweiSamuel.Camille.MatchV4;
@@ -12,24 +13,49 @@ namespace DiscordBot.Services
     public class RiotApiService
     {
         private readonly RiotApi riotApi;
-
         public RiotApiService()
         {
             riotApi = RiotApi.NewInstance(Environment.GetEnvironmentVariable("RIOTAPI"));
         }
 
+        public async Task<Dictionary<string,string>> GetSummonerInfo(string summonerName, string reigon)
+        {
+            Dictionary<string, string> keyValuePairs = new Dictionary<string, string>();
+
+            var summonerData = await riotApi.SummonerV4.GetBySummonerNameAsync(Region.Get(reigon), summonerName);
+            if(summonerData == null)
+            {
+                await Task.Run(() => throw new RiotApiException($"Summoner '{summonerName}' not found."));
+            }
+            var rankedData = await riotApi.LeagueV4.GetLeagueEntriesForSummonerAsync(Region.Get(reigon), summonerData.Id);
+            var masteryData = await riotApi.ChampionMasteryV4.GetAllChampionMasteriesAsync(Region.Get(reigon), summonerData.Id);
+
+            foreach (var data in rankedData)
+            {
+                keyValuePairs.Add(data.QueueType, data.Tier + " " + data.Rank);
+                var winRate = CalculateWinRate(data.Wins, data.Losses); 
+                keyValuePairs.Add(data.QueueType + "WR", winRate.ToString() + "%"); 
+            }
+
+            keyValuePairs.Add("IconID", summonerData.ProfileIconId.ToString());
+            keyValuePairs.Add("Name", summonerName);
+            keyValuePairs.Add("Level", summonerData.SummonerLevel.ToString());
+            keyValuePairs.Add("ChampMastery",((Champion)masteryData[0].ChampionId).Name());
+            keyValuePairs.Add("ChampMasteryScore", masteryData[0].ChampionPoints.ToString());
+
+            return keyValuePairs; 
+        }
+
         public async Task<Dictionary<string,string>> GetRankedHistory(string summonerName,string reigon, int numGames)
         {
-            Dictionary<String, String> dictionary = new Dictionary<string, string>(); 
+            Dictionary<string, string> dictionary = new Dictionary<string, string>(); 
             StringBuilder stringBuilder = new StringBuilder();
 
             var summonerData = await riotApi.SummonerV4.GetBySummonerNameAsync(Region.Get(reigon), summonerName);
 
             if(summonerData == null)
             {
-                stringBuilder.AppendLine($"Summoner '{summonerName}' not found.");
-                dictionary.Add("Data",stringBuilder.ToString());
-                return dictionary;
+                await Task.Run(() => throw new RiotApiException($"Summoner '{summonerName}' not found."));
             }
 
             dictionary.Add("IconID", summonerData.ProfileIconId.ToString()); 
@@ -72,7 +98,7 @@ namespace DiscordBot.Services
             return dictionary; 
         }
 
-        public Boolean ValidReigon(string reigon)
+        public bool ValidReigon(string reigon)
         {
             try
             {
@@ -83,6 +109,12 @@ namespace DiscordBot.Services
             {
                 return false; 
             }
+        }
+
+        private int CalculateWinRate(int wins, int losses)
+        {
+            float winrate = (float)wins / (float)(wins + losses) * 100;
+            return (int)winrate;
         }
     }
 }
