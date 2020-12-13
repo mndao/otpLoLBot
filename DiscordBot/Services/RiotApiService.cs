@@ -7,6 +7,7 @@ using DiscordBot.Exceptions;
 using MingweiSamuel.Camille;
 using MingweiSamuel.Camille.Enums;
 using MingweiSamuel.Camille.MatchV4;
+using MingweiSamuel.Camille.SpectatorV4;
 
 namespace DiscordBot.Services
 { 
@@ -18,7 +19,23 @@ namespace DiscordBot.Services
             riotApi = RiotApi.NewInstance(Environment.GetEnvironmentVariable("RIOTAPI"));
         }
 
-        public async Task<Dictionary<string,string>> GetSummonerInfo(string summonerName, string reigon)
+        public async Task<CurrentGameInfo> GetLiveMatchDataAsync(string summonerName, string reigon)
+        {
+            var summonerData = await riotApi.SummonerV4.GetBySummonerNameAsync(Region.Get(reigon), summonerName);
+            if(summonerData == null)
+            {
+                await Task.Run(() => throw new RiotApiException($"Summoner '{summonerName} not found."));
+            }
+            CurrentGameInfo currentGameInfo = await riotApi.SpectatorV4.GetCurrentGameInfoBySummonerAsync(Region.Get(reigon), summonerData.Id);
+
+            if(currentGameInfo == null)
+            {
+                await Task.Run(() => throw new RiotApiException($"Summoner '{summonerName} is not currently in a game."));
+            }
+            return currentGameInfo;
+        }
+
+        public async Task<Dictionary<string,string>> GetSummonerInfoAsync(string summonerName, string reigon)
         {
             Dictionary<string, string> keyValuePairs = new Dictionary<string, string>();
 
@@ -46,7 +63,7 @@ namespace DiscordBot.Services
             return keyValuePairs; 
         }
 
-        public async Task<Dictionary<string,string>> GetRankedHistory(string summonerName,string reigon, int numGames)
+        public async Task<Dictionary<string,string>> GetRankedHistoryAsync(string summonerName,string reigon, int numGames)
         {
             Dictionary<string, string> dictionary = new Dictionary<string, string>(); 
             StringBuilder stringBuilder = new StringBuilder();
