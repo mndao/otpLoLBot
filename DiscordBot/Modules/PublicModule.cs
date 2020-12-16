@@ -16,6 +16,33 @@ namespace DiscordBot.Modules
 
         public DataDragonService DataDragonService { get; set; }
 
+        [Command("GetChampInfo")]
+        public async Task GetChampInfoAsync(params string[] objects)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+
+            for (int i = 0; i <= objects.Length-1; i++)
+            {
+                stringBuilder.Append(objects[i] + "_");
+            }
+            string summonerName = stringBuilder.ToString().Substring(0, stringBuilder.ToString().Length - 1);
+            var result = await DataDragonService.GetChampionInfoAsync(summonerName);
+            var embed = new EmbedBuilder
+            {
+                Title = result.name,
+                Color = Color.Green
+            };
+            embed.AddField("Roles", string.Join(", ", result.tags));
+            embed.AddField("Enemy Tips", string.Join("\n", result.enemytips));
+            embed.AddField("Ally Tips", string.Join("\n", result.allytips));
+            embed.ThumbnailUrl = DataDragonService.GetChampionIconURL(result.name);
+            embed.ImageUrl = DataDragonService.GetChampionImageURL(result.name);
+            embed.WithCurrentTimestamp();
+
+            await ReplyAsync(embed: embed.Build());
+              
+        }
+
         //Usage : @botname GetLiveMatchData summonerName Region 
         [Command("GetLiveMatchData")]
         public async Task GetLiveMatchDataAsync(params string[] objects)
