@@ -13,11 +13,15 @@ namespace DiscordBot.Services
     {
         private string PATCH = Environment.GetEnvironmentVariable("PATCH");
         private RestClient restClient;
-        
+        private Dictionary<string, ItemDD> itemByNameDict;
+        private Dictionary<string, ItemDD> itemByIDDict;
+
         public DataDragonService()
         {
             restClient = new RestClient("http://ddragon.leagueoflegends.com/cdn/" + PATCH + "/");
-
+            itemByIDDict = new Dictionary<string, ItemDD>();
+            itemByNameDict = new Dictionary<string, ItemDD>();
+            GetItemInfo();
         }
 
         public string GetChampionImageURL(string name)
@@ -39,6 +43,41 @@ namespace DiscordBot.Services
         {
             return "http://ddragon.leagueoflegends.com/cdn/" + PATCH + "/img/champion/" + name + ".png";
         }
+
+        public string GetItemIconURL(string name)
+        {
+            return "http://ddragon.leagueoflegends.com/cdn/" + PATCH + "/img/item/" + name + ".png";
+        }
+
+        public ItemDD GetItemByName(string name)
+        {
+            if (!itemByNameDict.ContainsKey(name))
+            {
+                throw new ArgumentException("Item does not exist");
+            }
+            return itemByNameDict[name];
+        }
+
+        public ItemDD GetItemByID(string Id)
+        {
+            if (!itemByIDDict.ContainsKey(Id))
+            {
+                throw new ArgumentException("Item does not exist");
+            }
+            return itemByIDDict[Id];
+        }
+
+        public List<string> GetUpgradeItems(List<string> itemList)
+        {
+            List<string> list = new List<string>();
+            foreach (var item in itemList)
+            {
+                var name = itemByIDDict[item].Name;
+                list.Add(name);
+            }
+            return list; 
+        }
+
 
         public async Task<ChampionDD> GetChampionInfoAsync(string name)
         {
@@ -65,6 +104,41 @@ namespace DiscordBot.Services
                 tags = tags
             };
             return champDD;
+        }
+
+        private void GetItemInfo()
+        {
+            RestRequest request = new RestRequest("data/en_US/item.json");
+            IRestResponse response = restClient.Get(request);
+            var content = JObject.Parse(response.Content);
+            var items = (JObject)content["data"];
+
+            foreach (var item in items)
+            {
+                string Id = item.Key;
+                var details = item.Value;
+                var itemName = details["name"].ToString();
+                var plainText = details["plaintext"].ToString();
+                var buildsInto = details["into"] == null ? new List<string>() : details["into"].ToObject<List<string>>();
+                var tags = details["tags"].ToObject<List<string>>();
+                var cost = (details["gold"])["base"].ToString();
+
+                var newItemDD = new ItemDD
+                {
+                    Id = Id,
+                    Name = itemName,
+                    BuildsInto = buildsInto,
+                    Plaintext = plainText,
+                    Tags = tags,
+                    Cost = cost
+                };
+
+                itemByIDDict.Add(Id, newItemDD);
+                if(!itemByNameDict.ContainsKey(itemName))
+                {
+                    itemByNameDict.Add(itemName, newItemDD);
+                }
+            }
         }
 
     }

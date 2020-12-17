@@ -16,6 +16,43 @@ namespace DiscordBot.Modules
 
         public DataDragonService DataDragonService { get; set; }
 
+        //Usage : @botname GetItemInfo itemName
+        [Command("GetItemInfo")]
+        public async Task GetItemInfo(params string[] objects)
+        {
+            StringBuilder stringBuilder = new StringBuilder(); 
+            for (int i = 0; i <= objects.Length - 1; i++)
+            {
+                stringBuilder.Append(objects[i] + " ");
+            }
+            string item = stringBuilder.ToString().Substring(0, stringBuilder.ToString().Length - 1);
+            var result = DataDragonService.GetItemByName(item);
+            var listOfItems = DataDragonService.GetUpgradeItems(result.BuildsInto);
+            var imageURL = DataDragonService.GetItemIconURL(result.Id);
+            var embed = new EmbedBuilder
+            {
+                Title = item,
+                Color = Color.Green
+            };
+            if(!String.IsNullOrEmpty(result.Plaintext))
+            {
+                embed.AddField("Description", result.Plaintext); 
+
+            }
+            embed.AddField("Tags", string.Join(", ", result.Tags),true);
+            embed.AddField("Cost", result.Cost,true);
+            if(listOfItems.Count > 0)
+            {
+                embed.AddField("Builds Into", string.Join("\n", listOfItems));
+            }
+            embed.ThumbnailUrl = imageURL;
+            embed.WithCurrentTimestamp();
+
+            await ReplyAsync(embed: embed.Build());
+
+        }
+
+        //Usage : @botname GetChampInfo championName
         [Command("GetChampInfo")]
         public async Task GetChampInfoAsync(params string[] objects)
         {
