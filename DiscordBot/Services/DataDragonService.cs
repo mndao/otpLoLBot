@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions; 
 using DiscordBot.Models;
 using MingweiSamuel.Camille.Enums;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -109,6 +109,7 @@ namespace DiscordBot.Services
         private void GetItemInfo()
         {
             RestRequest request = new RestRequest("data/en_US/item.json");
+            Regex rx = new Regex("<[^>]*>");
             IRestResponse response = restClient.Get(request);
             var content = JObject.Parse(response.Content);
             var items = (JObject)content["data"];
@@ -119,6 +120,7 @@ namespace DiscordBot.Services
                 var details = item.Value;
                 var itemName = details["name"].ToString();
                 var plainText = details["plaintext"].ToString();
+                var stats = details["description"].ToString();
                 var buildsInto = details["into"] == null ? new List<string>() : details["into"].ToObject<List<string>>();
                 var tags = details["tags"].ToObject<List<string>>();
                 var cost = (details["gold"])["base"].ToString();
@@ -129,6 +131,7 @@ namespace DiscordBot.Services
                     Name = itemName,
                     BuildsInto = buildsInto,
                     Plaintext = plainText,
+                    Stats = rx.Replace(stats,""),
                     Tags = tags,
                     Cost = cost
                 };
@@ -140,6 +143,5 @@ namespace DiscordBot.Services
                 }
             }
         }
-
     }
 }

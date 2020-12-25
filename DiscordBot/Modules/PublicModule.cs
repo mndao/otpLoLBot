@@ -41,6 +41,7 @@ namespace DiscordBot.Modules
             }
             embed.AddField("Tags", string.Join(", ", result.Tags),true);
             embed.AddField("Cost", result.Cost,true);
+            embed.AddField("Stats", result.Stats);
             if(listOfItems.Count > 0)
             {
                 embed.AddField("Builds Into", string.Join("\n", listOfItems));
@@ -49,7 +50,6 @@ namespace DiscordBot.Modules
             embed.WithCurrentTimestamp();
 
             await ReplyAsync(embed: embed.Build());
-
         }
 
         //Usage : @botname GetChampInfo championName
@@ -76,8 +76,7 @@ namespace DiscordBot.Modules
             embed.ImageUrl = DataDragonService.GetChampionImageURL(result.name);
             embed.WithCurrentTimestamp();
 
-            await ReplyAsync(embed: embed.Build());
-              
+            await ReplyAsync(embed: embed.Build());   
         }
 
         //Usage : @botname GetLiveMatchData summonerName Region 

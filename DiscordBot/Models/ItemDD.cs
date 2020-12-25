@@ -8,8 +8,8 @@ namespace DiscordBot.Models
         public string Name { get; set; }
         public string Plaintext { get; set; }
         public string Cost { get; set;}
+        public string Stats { get; set;}
         public List<string> BuildsInto { get; set; }
         public List<string> Tags { get; set; }
-
     }
 }
