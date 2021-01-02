@@ -17,5 +17,11 @@
     <Folder Include="Modules\" />
     <Folder Include="Models\" />
     <Folder Include="Exceptions\" />
+    <Folder Include=".github\" />
+    <Folder Include=".github\workflows\" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <None Include=".github\workflows\deploy.yml" />
   </ItemGroup>
 </Project>
