@@ -26,7 +26,7 @@ namespace DiscordBot.Services
 
         public string GetChampionImageURL(string name)
         {
-            return "http://ddragon.leagueoflegends.com/cdn/img/champion/splash/" + name + "_0.jpg";
+            return "http://ddragon.leagueoflegends.com/cdn/img/champion/splash/" + name.Replace(" ","") + "_0.jpg";
         }
 
         public string GetMapURL(string name)
@@ -77,7 +77,6 @@ namespace DiscordBot.Services
             }
             return list; 
         }
-
 
         public async Task<ChampionDD> GetChampionInfoAsync(string name)
         {

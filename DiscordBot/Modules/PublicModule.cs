@@ -16,6 +16,12 @@ namespace DiscordBot.Modules
 
         public DataDragonService DataDragonService { get; set; }
 
+        private EmbedAuthorBuilder author = new EmbedAuthorBuilder
+        {
+            Name = "very-cool-bot", 
+            IconUrl = "http://ddragon.leagueoflegends.com/cdn/" + Environment.GetEnvironmentVariable("PATCH") + "/img/champion/Sona.png"
+        };
+
         //Usage : @botname GetItemInfo itemName
         [Command("GetItemInfo")]
         public async Task GetItemInfo(params string[] objects)
@@ -34,6 +40,8 @@ namespace DiscordBot.Modules
                 Title = item,
                 Color = Color.Green
             };
+            embed.WithAuthor(author);       
+            
             if(!String.IsNullOrEmpty(result.Plaintext))
             {
                 embed.AddField("Description", result.Plaintext); 
@@ -69,6 +77,7 @@ namespace DiscordBot.Modules
                 Title = result.name,
                 Color = Color.Green
             };
+            embed.WithAuthor(author);
             embed.AddField("Roles", string.Join(", ", result.tags));
             embed.AddField("Enemy Tips", string.Join("\n", result.enemytips));
             embed.AddField("Ally Tips", string.Join("\n", result.allytips));
@@ -105,12 +114,12 @@ namespace DiscordBot.Modules
             StringBuilder blueStringBuilder = new StringBuilder();
             foreach (var participant in blueSide)
             {
-                blueStringBuilder.AppendLine(participant.SummonerName + " : " + ((Champion)participant.ChampionId).Name());
+                blueStringBuilder.AppendLine(participant.SummonerName + " : " + RiotApiService.MakeBold(((Champion)participant.ChampionId).Name()));
             }
             StringBuilder redStringBuilder = new StringBuilder();
             foreach (var participant in redSide)
             {
-                redStringBuilder.AppendLine(participant.SummonerName + " : " + ((Champion)participant.ChampionId).Name());
+                redStringBuilder.AppendLine(participant.SummonerName + " : " + RiotApiService.MakeBold(((Champion)participant.ChampionId).Name()));
 
             }
             var embed = new EmbedBuilder
@@ -135,19 +144,26 @@ namespace DiscordBot.Modules
 
             for (int i = 0; i <= objects.Length - 3; i++)
             {
-                stringBuilder.Append(objects[i]);
+                stringBuilder.Append(objects[i] + " ");
             }
 
-            await ReplyAsync("Obtaining ranked stats for summoner :" + stringBuilder.ToString() + " ...");
+            string summonerName = stringBuilder.ToString().Substring(0, stringBuilder.ToString().Length - 1);
 
-            var result = await RiotApiService.GetRankedHistoryAsync(stringBuilder.ToString(), objects[objects.Length - 2], Int32.Parse(objects[objects.Length - 1]));
+            await ReplyAsync("Obtaining ranked stats for summoner :" + summonerName + " ...");
+
+            var result = await RiotApiService.GetRankedHistoryAsync(summonerName, objects[objects.Length - 2], Int32.Parse(objects[objects.Length - 1]));
             var embed = new EmbedBuilder
             {
                 Title = "Ranked History for " + objects[0],
                 Color = Color.Green,
-                Description = result["Data"],
                 ThumbnailUrl = DataDragonService.GetSummonerIconURL(result["IconID"]),
             };
+            embed.WithAuthor(author);
+            embed.AddField("Wins", result["Wins"], true);
+            embed.AddField("Losses", result["Loss"], true);
+            embed.AddField("Win rate", result["Winrate"], true);
+            embed.AddField("Match History", result["Data"], false);
+
             embed.WithCurrentTimestamp();
             await ReplyAsync(embed: embed.Build());
         }
@@ -161,33 +177,33 @@ namespace DiscordBot.Modules
                 throw new ArgumentException("Arguments should be the following:\n1: Summoner Name\n" +
                     "2: Reigon\n");
             }
-
             StringBuilder stringBuilder = new StringBuilder();
 
             for (int i = 0; i <= objects.Length - 2; i++)
             {
-                stringBuilder.Append(objects[i]);
+                stringBuilder.Append(objects[i] + " ");
+
             }
-            string summonerName = stringBuilder.ToString();
+            string summonerName = stringBuilder.ToString().Substring(0, stringBuilder.ToString().Length - 1);
+
             await ReplyAsync("Obtaining summoner info for summoner : " + summonerName + " ...");
 
             var result = await RiotApiService.GetSummonerInfoAsync(summonerName, objects[objects.Length - 1]);
 
             var embed = new EmbedBuilder();
+            embed.WithAuthor(author);
+            embed.Color = Color.Green;
             embed.Title = summonerName;
             embed.AddField("Level", result["Level"]);
             if (result.ContainsKey("RANKED_FLEX_SR"))
             {
-                embed.AddField("Flex Rank", result["RANKED_FLEX_SR"], true);
+                embed.AddField("Flex Rank", GetRankedLogo(result["RANKED_FLEX_SR"]) + " " + result["RANKED_FLEX_SR"], true);
                 embed.AddField("Flex WR", result["RANKED_FLEX_SRWR"], true);
-                embed.Color = RankedBorderColor(result["RANKED_FLEX_SR"]);
             }
             if (result.ContainsKey("RANKED_SOLO_5x5"))
             {
-                embed.AddField("Solo Rank", result["RANKED_SOLO_5x5"], true);
+                embed.AddField("Solo Rank", GetRankedLogo(result["RANKED_SOLO_5x5"]) + " " + result["RANKED_SOLO_5x5"], true);
                 embed.AddField("Solo WR", result["RANKED_SOLO_5x5WR"], true);
-                embed.Color = RankedBorderColor(result["RANKED_SOLO_5x5"]);
-
             }
             embed.AddField("Highest Champion Mastery",
                 result["ChampMastery"] + " " + result["ChampMasteryScore"] + " points");
@@ -198,20 +214,23 @@ namespace DiscordBot.Modules
             await ReplyAsync(embed: embed.Build());     
         }
 
-        private Color RankedBorderColor(string rank)
+        private string GetRankedLogo(string rank)
         {
             var rankName = rank.Split(" ")[0];
             var color = rankName switch
             {
-                "GOLD" => Color.Gold,
-                "PLATINUM" => Color.DarkGreen,
-                "DIAMOND" => Color.Blue,
-                "MASTER" => Color.Blue,
-                "GRANDMASTER" => Color.Blue,
-                "CHALLENGER" => Color.Blue,
-                _ => Color.Default,
+                "IRON" => "<:Iron:793016881237327873>",
+                "BRONZE" => "<:Bronze:793014741039185920>",
+                "SILVER" => "<:Silver:793016882801672202>",
+                "GOLD" => "<:Gold:793016882944016415>",
+                "PLATINUM" => "<:Platinum:793016882202279957>",
+                "DIAMOND" => "<:Diamond:793016883871219732>",
+                "MASTER" => "<:Master:793016881409425418>",
+                "GRANDMASTER" => "<:Grandmaster:793016881501175808>",
+                "CHALLENGER" => "<:Challenger:793011383259234304>",
+                _ => "",
             };
-            return color; 
+            return color;
         }
 
         private void ValidateRankedInfo(string[] objects)

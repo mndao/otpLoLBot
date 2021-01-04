@@ -85,7 +85,8 @@ namespace DiscordBot.Services
 
             var matchDatas = await Task.WhenAll(matchDataTasks);
 
-            var index = 0; 
+            var index = 0;
+            var winCount = 0;
 
             foreach (Match match in matchDatas)
             {
@@ -99,16 +100,23 @@ namespace DiscordBot.Services
                 var champ = (Champion)participant.ChampionId;
                 var kills = participant.Stats.Kills;
                 var deaths = participant.Stats.Deaths;
-                var assits = participant.Stats.Assists;
-                var kda = (kills + assits) / (float)deaths;
+                var assist = participant.Stats.Assists;
+                var kda = (kills + assist) / (float)deaths;
 
-                string result = win ? "Won" : "Lost";
-                string line = result + " " + kills + "/" + deaths + "/" + assits + " as " + champ.Name();
+                if(win)
+                {
+                    winCount += 1; 
+                }
+                string dot = win ? ":green_circle: " : ":red_circle: "; 
+                string line = dot + " " + kills + "/" + deaths + "/" + assist + " as " + MakeBold(champ.Name());
 
                 stringBuilder.AppendLine(line);
                 stringBuilder.AppendLine("");
                 index += 1; 
             }
+            dictionary.Add("Wins", winCount.ToString());
+            dictionary.Add("Loss", (numGames - winCount).ToString());
+            dictionary.Add("Winrate", CalculateWinRate(winCount,numGames-winCount).ToString() + "%");
 
             dictionary.Add("Data", stringBuilder.ToString());
 
@@ -130,8 +138,14 @@ namespace DiscordBot.Services
 
         private int CalculateWinRate(int wins, int losses)
         {
+            if (losses == 0) return 100; 
             float winrate = (float)wins / (float)(wins + losses) * 100;
             return (int)winrate;
+        }
+
+        public string MakeBold(string word)
+        {
+            return "**" + word + "**";
         }
     }
 }
