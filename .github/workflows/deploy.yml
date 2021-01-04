@@ -19,7 +19,7 @@ jobs:
         KEY: ${{ secrets.SSHKEY }}
       with:
         source: "."
-        target: "Test"
+        target: "Source"
 
     - name: Executing remote command
       uses: appleboy/ssh-action@master
@@ -28,4 +28,4 @@ jobs:
         USERNAME: ${{ secrets.USERNAME }}
         PORT: ${{ secrets.PORT }}
         KEY: ${{ secrets.SSHKEY }}
-        script: ls
+        script: pm2 stop DiscordBot ; dotnet publish ./Source -c Release ; mv ./Source/DiscordBot/bin/Release/netcoreapp3.1/publish/* DiscordBot ; pm2 start DiscordBot 
